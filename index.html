@@ -42,26 +42,36 @@ function preload() {
 }
 
 function setup() {
-    // Tetapkan saiz 9:16 mengikut ketinggian skrin
-    let h = windowHeight * 0.95;
-    let w = (h * 9) / 16;
+    // Tetapkan saiz kanvas yang responsif
+    let canvas = createCanvas(640, 480);
     
-    if (w > windowWidth) {
-        w = windowWidth * 0.9;
-        h = (w * 16) / 9;
-    }
+    // Konfigurasi kamera yang lebih stabil
+    let constraints = {
+        video: {
+            mandatory: {
+                minWidth: 640,
+                minHeight: 480
+            },
+            optional: [{ facingMode: "user" }]
+        },
+        audio: false
+    };
+
+    // Mulakan rakaman video
+    video = createCapture(VIDEO, constraints, function(stream) {
+        console.log("Kamera Berjaya Diakses!");
+    });
     
-    createCanvas(w, h);
-    
-    // Kamera HD
-    video = createCapture(VIDEO, { flipped: true });
     video.size(640, 480);
     video.hide();
 
-    faceMesh.detectStart(video, (results) => { faces = results; });
+    // Mulakan pengesan muka
+    faceMesh.detectStart(video, (results) => {
+        faces = results;
+    });
+    
     textAlign(CENTER, CENTER);
 }
-
 function draw() {
     background(0);
     
@@ -94,7 +104,7 @@ function drawStart() {
     
     fill(255);
     textSize(width * 0.12);
-    text("أديق تيمم", width/2, height/2 - 20);
+    text("تيمم", width/2, height/2 - 20);
     
     textSize(width * 0.05);
     text("ݢرق كڤالا اونتوق مميليه", width/2, height/2 + 40);
