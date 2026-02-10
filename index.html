@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title> تيمم </title>
+    <title>أديك تيمم - Pro Edition V2</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
     <script src="https://unpkg.com/ml5@1/dist/ml5.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@700&display=swap" rel="stylesheet">
@@ -33,10 +33,12 @@ const quiz = [
 ];
 
 function preload() {
+    // Muat turun model AI
     faceMesh = ml5.faceMesh({ maxFaces: 1, flipped: true });
 }
 
 function setup() {
+    // Tetapkan saiz kanvas 9:16
     let h = windowHeight * 0.95;
     let w = (h * 9) / 16;
     if (w > windowWidth) {
@@ -45,41 +47,59 @@ function setup() {
     }
     createCanvas(w, h);
     
-    // Set kamera dengan resolusi standard
-    video = createCapture(VIDEO, { flipped: true });
+    // AKSES KAMERA (Cara paling stabil)
+    let constraints = {
+        video: {
+            facingMode: "user",
+            width: 640,
+            height: 480
+        },
+        audio: false
+    };
+
+    video = createCapture(VIDEO, constraints, function(stream) {
+        console.log("Kamera aktif!");
+    });
     video.size(640, 480);
     video.hide();
 
+    // Mula kesan muka
+    faceMesh.detectStart(video, (results) => {
+        faces = results;
+    });
+
     shuffle(quiz, true);
-    faceMesh.detectStart(video, (results) => { faces = results; });
     textAlign(CENTER, CENTER);
 }
 
 function draw() {
     background(0);
     
-    // FIX GAMBAR LEPER: Guna teknik Center-Crop
-    let vRatio = video.width / video.height; // 1.33
-    let cRatio = width / height; // 0.56
-    let sw, sh, sx, sy;
+    if (video) {
+        // LOGIK ANTI-LEPER (Center Crop)
+        let vRatio = video.width / video.height;
+        let cRatio = width / height;
+        let sw, sh, sx, sy;
 
-    if (vRatio > cRatio) {
-        sh = video.height;
-        sw = sh * cRatio;
-        sx = (video.width - sw) / 2;
-        sy = 0;
-    } else {
-        sw = video.width;
-        sh = sw / cRatio;
-        sx = 0;
-        sy = (video.height - sh) / 2;
+        if (vRatio > cRatio) {
+            sh = video.height;
+            sw = sh * cRatio;
+            sx = (video.width - sw) / 2;
+            sy = 0;
+        } else {
+            sw = video.width;
+            sh = sw / cRatio;
+            sx = 0;
+            sy = (video.height - sh) / 2;
+        }
+        image(video, 0, 0, width, height, sx, sy, sw, sh);
     }
-    image(video, 0, 0, width, height, sx, sy, sw, sh);
 
     if (gameState === "START") drawStart();
     else if (gameState === "PLAY") drawPlay();
     else if (gameState === "END") drawEnd();
 
+    // Animasi Partikel
     for (let i = particles.length - 1; i >= 0; i--) {
         particles[i].update();
         particles[i].show();
@@ -91,36 +111,32 @@ function drawStart() {
     fill(0, 150);
     rect(0, 0, width, height);
     fill("#FFD700");
-    textSize(width * 0.15);
-    text("✨ تيمم ✨", width/2, height/2 - 50);
+    textSize(width * 0.12);
+    text("أديق تيمم", width/2, height/2 - 20);
     fill(255);
     textSize(width * 0.05);
-    text("كليق اونتوق مـولا", width/2, height/2 + 50);
+    text("كليق سكرين اونتوق مـولا", width/2, height/2 + 40);
 }
 
 function drawPlay() {
     let data = quiz[currentQ];
     
     // UI Soalan
-    push();
-    drawingContext.shadowBlur = 15;
-    drawingContext.shadowColor = 'black';
-    fill(255);
+    fill(255, 240);
+    noStroke();
     rect(width*0.05, height*0.1, width*0.9, height*0.15, 15);
     fill(0);
     textSize(width * 0.06);
     text(data.q, width/2, height*0.17);
-    pop();
 
     // Jawapan
     drawIGBox(width*0.05, height*0.75, data.a, "#E1306C");
     drawIGBox(width*0.52, height*0.75, data.b, "#405DE6");
 
-    // DETEKSI HIDUNG (ANTI-SENSITIF)
+    // Pointer Bintang
     if (faces.length > 0) {
         let nose = faces[0].keypoints[1];
         
-        // Map koordinat mengikut crop
         let vRatio = video.width / video.height;
         let cRatio = width / height;
         let sw = video.height * cRatio;
@@ -129,21 +145,17 @@ function drawPlay() {
         let nx = map(nose.x, sx, sx + sw, 0, width);
         let ny = map(nose.y, 0, video.height, 0, height);
         
-        // Pointer
         fill(255, 235, 59);
         textSize(width * 0.1);
         text("⭐", nx, ny);
         
-        // HAD SENSITIVITI (Cikgu kena gerak lebih ke tepi)
-        // Sebelum ini 0.35 & 0.65, sekarang kita ketatkan ke 0.25 & 0.75
-        if (nx < width * 0.22) checkAns("left");
-        if (nx > width * 0.78) checkAns("right");
+        // ANTI-SENSITIF: Kena gerak jauh ke tepi
+        if (nx < width * 0.2) checkAns("left");
+        if (nx > width * 0.8) checkAns("right");
     }
     
     if (feedback !== "") {
         fill(255);
-        stroke(0);
-        strokeWeight(4);
         textSize(width * 0.3);
         text(feedback, width/2, height/2);
     }
@@ -163,7 +175,7 @@ function checkAns(side) {
     if (side === quiz[currentQ].ans) {
         score++;
         feedback = "✅";
-        for(let i=0; i<20; i++) particles.push(new Particle(width/2, height/2, "#4caf50"));
+        for(let i=0; i<15; i++) particles.push(new Particle(width/2, height/2, "#4caf50"));
     } else {
         feedback = "❌";
     }
@@ -178,14 +190,19 @@ function drawEnd() {
     fill(0, 200);
     rect(0,0,width,height);
     fill("#FFD700");
-    textSize(width * 0.1);
-    text("تـمـت!", width/2, height/2);
+    textSize(width * 0.15);
+    text("تـمـت!", width/2, height/2 - 20);
     fill(255);
-    textSize(width * 0.05);
-    text("سكور: " + score, width/2, height/2 + 50);
+    textSize(width * 0.06);
+    text("سكور: " + score, width/2, height/2 + 40);
 }
 
-function mousePressed() { if (gameState !== "PLAY") { shuffle(quiz, true); currentQ = 0; score = 0; gameState = "PLAY"; } }
+function mousePressed() {
+    if (gameState !== "PLAY") {
+        shuffle(quiz, true);
+        currentQ = 0; score = 0; gameState = "PLAY";
+    }
+}
 
 class Particle {
     constructor(x, y, col) {
