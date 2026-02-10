@@ -53,23 +53,36 @@ function preload() {
 }
 
 function setup() {
-    // Buat canvas mengikut lebar skrin peranti
-    let canvasWidth = windowWidth < 640 ? windowWidth * 0.95 : 640;
-    let canvasHeight = (canvasWidth / 4) * 3; // Kekalkan nisbah 4:3 supaya tak leper
-    let canvas = createCanvas(canvasWidth, canvasHeight);
+    // Tetapkan saiz kanvas yang responsif
+    let canvas = createCanvas(640, 480);
     
-    // Setup Video
-    video = createCapture(VIDEO, { flipped: true });
-    video.size(canvasWidth, canvasHeight);
+    // Konfigurasi kamera yang lebih stabil
+    let constraints = {
+        video: {
+            mandatory: {
+                minWidth: 640,
+                minHeight: 480
+            },
+            optional: [{ facingMode: "user" }]
+        },
+        audio: false
+    };
+
+    // Mulakan rakaman video
+    video = createCapture(VIDEO, constraints, function(stream) {
+        console.log("Kamera Berjaya Diakses!");
+    });
+    
+    video.size(640, 480);
     video.hide();
 
+    // Mulakan pengesan muka
     faceMesh.detectStart(video, (results) => {
         faces = results;
     });
     
     textAlign(CENTER, CENTER);
 }
-
 // Fungsi untuk resize jika skrin berpusing (rotate)
 function windowResized() {
     let canvasWidth = windowWidth < 640 ? windowWidth * 0.95 : 640;
