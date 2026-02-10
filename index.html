@@ -42,30 +42,36 @@ function preload() {
 }
 
 function setup() {
-    // Tetapkan saiz kanvas yang responsif
-    let canvas = createCanvas(640, 480);
+    // 1. Tetapkan saiz 9:16 (Gaya Reels)
+    let h = windowHeight * 0.95;
+    let w = (h * 9) / 16;
     
-    // Konfigurasi kamera yang lebih stabil
+    // Elakkan terlalu lebar di skrin laptop
+    if (w > windowWidth) {
+        w = windowWidth * 0.9;
+        h = (w * 16) / 9;
+    }
+    
+    createCanvas(w, h);
+    
+    // 2. Konfigurasi Kamera (Audio dibasmi supaya laju)
     let constraints = {
         video: {
-            mandatory: {
-                minWidth: 640,
-                minHeight: 480
-            },
-            optional: [{ facingMode: "user" }]
+            facingMode: "user",
+            width: { ideal: 640 },
+            height: { ideal: 480 }
         },
         audio: false
     };
 
-    // Mulakan rakaman video
-    video = createCapture(VIDEO, constraints, function(stream) {
-        console.log("Kamera Berjaya Diakses!");
-    });
-    
+    video = createCapture(VIDEO, constraints);
     video.size(640, 480);
     video.hide();
 
-    // Mulakan pengesan muka
+    // 3. Rawakkan Soalan sebaik sahaja murid masuk
+    shuffle(quiz, true);
+
+    // 4. Mulakan AI Pengesan Muka
     faceMesh.detectStart(video, (results) => {
         faces = results;
     });
